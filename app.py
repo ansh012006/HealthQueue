@@ -6,7 +6,7 @@ from flask_login import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta, date
-import re  # for email validation
+import re  
 
 app = Flask(__name__)
 app.secret_key = "super_secret_key"
@@ -17,7 +17,6 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
-# ------------------ MODELS ------------------
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150), nullable=False)
@@ -59,7 +58,6 @@ with app.app_context():
     db.create_all()
 
 
-# ------------------ HELPERS ------------------
 def calculate_estimated_time(doctor, queue_position):
     """Estimate appointment time based on doctor's available_time."""
     if not doctor.available_time:
@@ -111,8 +109,6 @@ def is_date_available(doctor, selected_date):
             return True
     return True
 
-
-# ------------------ ROUTES ------------------
 @app.route("/")
 def index():
     if current_user.is_authenticated:
@@ -188,8 +184,6 @@ def logout():
     flash("Logged out successfully", "flash-info")
     return redirect(url_for("login"))
 
-
-# ------------------ PATIENT ------------------
 @app.route("/patient_dashboard", methods=["GET", "POST"])
 @login_required
 def patient_dashboard():
@@ -244,8 +238,6 @@ def patient_dashboard():
     ).order_by(Appointment.date.desc()).all()
     return render_template("patient_dashboard.html", doctors=doctors, appointments=appointments, datetime=datetime)
 
-
-# ------------------ DOCTOR ------------------
 @app.route("/doctor_dashboard", methods=["GET", "POST"])
 @login_required
 def doctor_dashboard():
@@ -269,8 +261,6 @@ def doctor_dashboard():
     ).order_by(Appointment.appointment_number).all()
     return render_template("doctor_dashboard.html", appointments=appointments)
 
-
-# ------------------ PHARMACIST ------------------
 @app.route("/pharmacist_dashboard", methods=["GET", "POST"])
 @login_required
 def pharmacist_dashboard():
@@ -336,7 +326,7 @@ def voice_book():
         flash("Only patients can use voice booking.", "flash-danger")
         return redirect(url_for("index"))
 
-    patient_id = current_user.id  # ✅ capture before starting thread
+    patient_id = current_user.id 
 
     def normalize_text(text):
         text = text.lower()
@@ -350,7 +340,7 @@ def voice_book():
         best_match = None
         highest_score = 0
 
-        print("\n🔍 Voice matching logs:")
+        print("\n Voice matching logs:")
         for d in doctors:
             doc_clean = normalize_text(d.name)
             ratio = SequenceMatcher(None, doc_clean, command_clean).ratio()
@@ -362,9 +352,9 @@ def voice_book():
                 best_match = d
 
         if best_match and highest_score >= 0.4:
-            print(f"✅ Matched doctor: {best_match.name} (score {highest_score:.2f})")
+            print(f"Matched doctor: {best_match.name} (score {highest_score:.2f})")
             return best_match
-        print("❌ No close doctor match found.")
+        print("No close doctor match found.")
         return None
 
     def recognize_and_book(patient_id):
@@ -432,7 +422,7 @@ def voice_book():
                     db.session.commit()
 
                     speak(f"Your appointment with Doctor {matched_doctor.name} on {date_selected.strftime('%A')} is booked.")
-                    print(f"✅ Appointment created for {matched_doctor.name} on {date_selected}")
+                    print(f"Appointment created for {matched_doctor.name} on {date_selected}")
                     break
 
                 except Exception as e:
@@ -446,4 +436,5 @@ def voice_book():
     return redirect(url_for("patient_dashboard"))
 
 if __name__ == "__main__":
+
     app.run(debug=True)
