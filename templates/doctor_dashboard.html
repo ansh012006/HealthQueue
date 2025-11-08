@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Doctor Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <div class="dashboard">
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+      <h2>Doctor Dashboard</h2>
+      <div>
+        <strong>Dr. {{ current_user.name }}</strong> &nbsp;·&nbsp;
+        <a href="{{ url_for('logout') }}">Logout</a>
+      </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, msg in messages %}
+          <div class="flash flash-{{ category|lower }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="card">
+      <h3>Availability & Settings</h3>
+      <form method="POST" action="{{ url_for('doctor_dashboard') }}">
+        <input type="hidden" name="update_settings" value="1" />
+        <label><input type="checkbox" name="availability" {% if current_user.availability %}checked{% endif %}> Available</label>
+        <br><br>
+
+        <label>Available Time</label> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp; &nbsp;
+        <input type="text" name="available_time" value="{{ current_user.available_time or '' }}" placeholder="e.g. 10:00–14:00" />
+        <br><br>
+        <label>Max Patients per Day</label> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp;&nbsp; &nbsp; &nbsp;&nbsp; &nbsp;
+        <input type="number" name="max_patients" min="1" value="{{ current_user.max_patients or 5 }}" />
+        <br><br>
+
+        <label>Average Consultation Time (minutes)</label> 
+        <input type="number" name="avg_consult_time" min="1" value="{{ current_user.avg_consult_time or 3}}" />
+        <br><br>
+        <button type="submit">Save Settings</button>
+      </form>
+    </div>
+    
+    <div class="card">
+      <h3>Appointments</h3>
+      {% if appointments %}
+        <table>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Patient</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Est. Wait</th>
+              <th>Prescription</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in appointments %}
+              <tr>
+                <td>{{ a.appointment_number }}</td>
+                <td>{{ a.patient.name }}</td>
+                <td>{{ a.date }}</td>
+                <td class="status {{ a.status }}">{{ a.status }}</td>
+                <td>{{ a.estimated_time or '—' }}</td>
+                <td>
+                  {% if a.status != 'Completed' %}
+                    <form method="POST" action="{{ url_for('doctor_dashboard') }}" style="display:flex; gap:8px; align-items:center;">
+                      <input type="hidden" name="send_prescription" value="1" />
+                      <input type="hidden" name="appointment_id" value="{{ a.id }}" />
+                      <input type="text" name="prescription" placeholder="Prescription details" required />
+                      <button class="btn-sm" type="submit">Send</button>
+                    </form>
+                  {% else %}
+                    {{ a.prescription or '—' }}
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>No appointments yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
+</body>
+</html>
