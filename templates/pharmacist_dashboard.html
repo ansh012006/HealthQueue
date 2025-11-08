@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pharmacist Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <div class="dashboard">
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+      <h2>Pharmacist Dashboard</h2>
+      <div>
+        <strong>{{ current_user.name }}</strong> &nbsp;·&nbsp;
+        <a href="{{ url_for('logout') }}">Logout</a>
+      </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, msg in messages %}
+          <div class="flash flash-{{ category|lower }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="card">
+      <h3>Prescriptions</h3>
+      {% if prescriptions %}
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Patient</th>
+              <th>Doctor</th>
+              <th>Prescription</th>
+              <th>Status</th>
+              <th>Update</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in prescriptions %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ p.patient.name }}</td>
+                <td>Dr. {{ p.doctor.name }}</td>
+                <td>{{ p.prescription }}</td>
+                <td>{{ p.pharmacy_status }}</td>
+                <td>
+                  <form method="POST" action="{{ url_for('pharmacist_dashboard') }}" style="display:flex; gap:8px; align-items:center;">
+                    <input type="hidden" name="appointment_id" value="{{ p.id }}" />
+                    <select name="status" required>
+                      <option value="Not Processed" {% if p.pharmacy_status=='Not Processed' %}selected{% endif %}>Not Processed</option>
+                      <option value="Ready" {% if p.pharmacy_status=='Ready' %}selected{% endif %}>Ready</option>
+                      <option value="Collected" {% if p.pharmacy_status=='Collected' %}selected{% endif %}>Collected</option>
+                      <option value="Not Available" {% if p.pharmacy_status=='Not Available' %}selected{% endif %}>Not Available</option>
+                    </select>
+                    <button class="btn-sm" type="submit">Update</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>No prescriptions available.</p>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>
