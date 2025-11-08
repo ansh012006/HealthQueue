@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Patient Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <div class="dashboard">
+    <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+      <h2>Patient Dashboard</h2>
+      <div>
+        <strong>{{ current_user.name }}</strong>
+        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+      </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="card">
+      <h3>Book Appointment</h3>
+      <form method="POST" class="form-grid" id="bookingForm">
+        <div>
+          <label for="doctor_id">Select Doctor</label>
+          <select name="doctor_id" id="doctor_id" required onchange="updateDateLimit()">
+            <option value="" disabled selected>Choose a doctor</option>
+            {% for doctor in doctors %}
+              <option 
+                value="{{ doctor.id }}" 
+                data-available-time="{{ doctor.available_time or '09:00–17:00' }}">
+                Dr. {{ doctor.name }} — {{ doctor.specialty or 'General' }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label for="date">Select Date</label>
+          <input type="date" name="date" id="date" required min="{{ datetime.utcnow().date().isoformat() }}">
+        </div>
+
+        <div class="actions">
+          <button type="submit">Book Appointment</button>
+        </div>
+      </form>
+      <p class="muted" style="margin-top:10px;">You can only book for available dates and times.</p>
+    </div>
+    <div style="margin-top:15px; text-align:center;">
+  <button type="button" onclick="startVoiceBooking()" class="btn-sm">🎙 Start Voice Booking</button>
+  <p style="font-size:13px; color:#555;">Say “Saarthi” to start voice booking hands-free.</p>
+  </div>
+
+  <script>
+  function startVoiceBooking() {
+    fetch("/voice_book")
+      .then(() => alert("Voice booking activated. Speak 'Saarthi' to start."))
+      .catch(() => alert("Failed to start voice booking."));
+  }
+  </script>
+
+    <div class="card">
+      <h3>Your Appointments</h3>
+      {% if appointments %}
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Doctor</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Est. Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for appt in appointments %}
+              <tr>
+                <td>{{ appt.appointment_number }}</td>
+                <td>Dr. {{ appt.doctor.name }}</td>
+                <td>{{ appt.date }}</td>
+                <td>{{ appt.status }}</td>
+                <td>{{ appt.estimated_time or 'N/A' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>No appointments yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    
+    function todayISO() {
+      const t = new Date();
+      return t.toISOString().split("T")[0];
+    }
+
+    
+    function updateDateLimit() {
+      const doctorSelect = document.getElementById("doctor_id");
+      const dateInput = document.getElementById("date");
+
+      if (!doctorSelect.value) return;
+
+      const selectedOption = doctorSelect.options[doctorSelect.selectedIndex];
+      const availableTime = selectedOption.getAttribute("data-available-time") || "09:00–17:00";
+      const endTime = (availableTime.split("–")[1] || "17:00").trim();
+
+      const now = new Date();
+      const today = todayISO();
+
+      
+      dateInput.min = today;
+
+      
+      const [endHour, endMinute] = endTime.split(":");
+      const endDate = new Date();
+      endDate.setHours(parseInt(endHour), parseInt(endMinute), 0);
+
+      if (now > endDate) {
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        dateInput.min = tomorrow.toISOString().split("T")[0];
+      }
+    }
+
+    window.addEventListener("load", () => {
+      const dateInput = document.getElementById("date");
+      dateInput.min = todayISO();
+    });
+    
+  </script>
+</body>
+</html>
