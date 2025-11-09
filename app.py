@@ -8,6 +8,16 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta, date
 import re  
 
+import os
+
+IS_RENDER = os.getenv("RENDER", "false").lower() == "true"
+
+try:
+    import speech_recognition as sr
+except Exception as e:
+    print("⚠️ SpeechRecognition could not load:", e)
+    sr = None
+
 # --- Python 3.13 compatibility patch for SpeechRecognition ---
 import sys
 import types
@@ -447,6 +457,7 @@ def voice_book():
 if __name__ == "__main__":
 
     app.run(debug=True)
+
 
 
 
