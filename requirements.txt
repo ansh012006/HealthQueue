@@ -7,5 +7,4 @@ gunicorn==22.0.0
 SpeechRecognition==3.10.4
 pyttsx3==2.90
 pydub==0.25.1
-threadsafe-queue==1.0
 requests==2.31.0
