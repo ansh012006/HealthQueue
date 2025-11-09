@@ -8,15 +8,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta, date
 import re  
 
-import os
-
-IS_RENDER = os.getenv("RENDER","false").lower()=="true"
-
-if not IS_RENDER:
-    import speech_recognisation as sr
-else:
-    sr = None
-    
 app = Flask(__name__)
 app.secret_key = "super_secret_key"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
@@ -447,4 +438,5 @@ def voice_book():
 if __name__ == "__main__":
 
     app.run(debug=True)
+
 
