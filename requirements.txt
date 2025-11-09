@@ -7,6 +7,5 @@ python-dotenv==1.0.1
 gunicorn==22.0.0
 
 SpeechRecognition==3.10.4
-PyAudio==0.2.14
 pyttsx3==2.90
 pydub==0.25.1
