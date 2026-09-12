@@ -6,11 +6,14 @@ from flask_login import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta, date
-import re  
+import os
+import re
 
 app = Flask(__name__)
-app.secret_key = "super_secret_key"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
+app.secret_key = os.environ.get("SECRET_KEY", "dev-only-change-me")
+_db_path = "/tmp/database.db" if os.environ.get("VERCEL") else "database.db"
+# ponytail: /tmp is only writable dir on Vercel serverless, data resets on redeploy; use Postgres when persistence matters
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{_db_path}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
@@ -54,8 +57,11 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-with app.app_context():
-    db.create_all()
+try:
+    with app.app_context():
+        db.create_all()
+except Exception:
+    pass
 
 
 def calculate_estimated_time(doctor, queue_position):
@@ -281,40 +287,41 @@ def pharmacist_dashboard():
     ).order_by(Appointment.date.desc()).all()
     return render_template("pharmacist_dashboard.html", prescriptions=prescriptions)
 
-import speech_recognition as sr
-import pyttsx3
-import threading
-import queue
+try:
+    import speech_recognition as sr
+    import pyttsx3
+    import threading
+    import queue
 
-engine = pyttsx3.init()
-engine.setProperty("rate", 175)
-speech_queue = queue.Queue()
+    engine = pyttsx3.init()
+    engine.setProperty("rate", 175)
+    speech_queue = queue.Queue()
 
-def tts_worker():
-    """Continuously process speech queue in a single thread"""
-    while True:
-        text = speech_queue.get()
-        if text is None:
-            break
-        try:
-            engine.say(text)
-            engine.runAndWait()
-        except Exception as e:
-            print("TTS error:", e)
-        speech_queue.task_done()
+    def tts_worker():
+        """Continuously process speech queue in a single thread"""
+        while True:
+            text = speech_queue.get()
+            if text is None:
+                break
+            try:
+                engine.say(text)
+                engine.runAndWait()
+            except Exception as e:
+                print("TTS error:", e)
+            speech_queue.task_done()
 
-threading.Thread(target=tts_worker, daemon=True).start()
+    threading.Thread(target=tts_worker, daemon=True).start()
 
-def speak(text):
-    """Thread-safe text-to-speech call"""
-    speech_queue.put(text)
+    def speak(text):
+        """Thread-safe text-to-speech call"""
+        speech_queue.put(text)
+except Exception:
+    # ponytail: voice stack needs mic/audio + long-lived thread, unavailable on Vercel serverless; voice route no-ops there, add when persistent server returns
+    sr = None
 
+    def speak(text):
+        pass
 
-from difflib import SequenceMatcher
-
-from difflib import SequenceMatcher
-
-from difflib import SequenceMatcher
 
 from difflib import SequenceMatcher
 
@@ -322,6 +329,9 @@ from difflib import SequenceMatcher
 @login_required
 def voice_book():
     """Voice appointment booking for blind patients (robust & context-safe)."""
+    if sr is None:
+        flash("Voice booking is unavailable on hosted deploy.", "flash-info")
+        return redirect(url_for("patient_dashboard"))
     if current_user.role != "patient":
         flash("Only patients can use voice booking.", "flash-danger")
         return redirect(url_for("index"))
